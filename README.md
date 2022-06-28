@@ -12,3 +12,30 @@
 ### 初改編
 いちいちコマンドプロンプトたたくの面倒にゃ！～ということで、ウィジェットにしたにゃ。しかも定期的に情報を更新するにゃ。すごく便利になったにゃ！
 このときWindows版になったにゃ・・・といってもLinux版と何も変わらないにゃ。
+
+## 必要なものにゃ
+* python 3.10 (これしか確かめてないにゃ)
+* BeautifulSoup4
+* requests
+
+## 下ごしらえにゃ
+```shell
+python3 -m pip beautifulsoup4
+python3 -m pip requests
+```
+
+## 搬入にゃ
+git clone https://github.com/s-tkt/weather_watch.git
+
+## 処方箋
+```shell
+# python weather.py
+```
+
+にゃ！
+
+## 覚書
+* Windows にゃと中途半端なところに窓がでるにゃ。タイトルバーの左端アイコンから移動を選ぶにゃ。あわてず、キーボードの矢印キーで適当に動かすにゃ。あとはマウスで好きな場所に移動させるにゃよ。
+
+## ありがとうにゃん！
+* https://weathernew.jp
