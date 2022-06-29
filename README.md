@@ -20,15 +20,16 @@
 
 ## 下ごしらえにゃ
 ```shell
-python3 -m pip beautifulsoup4
-python3 -m pip requests
+python -m pip beautifulsoup4
+python -m pip requests
 ```
 
-## 搬入にゃ
+## こしらえるにゃ
 git clone https://github.com/s-tkt/weather_watch.git
 
-## 処方箋
+## いただきますにゃ
 ```shell
+# cd weather_watch
 # python weather.py
 ```
 
