@@ -1,3 +1,4 @@
+import os
 import threading
 import requests
 from tkinter import Tk, ttk
@@ -7,6 +8,17 @@ latitude = 35.669
 longitude = 139.65
 
 root = Tk()
+
+# 終了処理
+# これをしないとプロセスが残ってしまうにゃぁぁぁ
+def terminate():
+    global root
+    root.quit()
+    root.destroy()
+    # sys.exit() だとプロセスが残るにゃ？
+    os._exit(0)
+
+root.protocol("WM_DELETE_WINDOW", terminate)
 root.title('天気予報')
 frm = ttk.Frame(root, padding=10)
 frm.grid()
