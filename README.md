@@ -1,9 +1,6 @@
 # weather_watch
 日本のお天気情報ウィジェット
 
-## What's New!
-Windows環境で、終了してもプロセスが残り続けるという問題がわかったので、急遽対応したにゃ。
-
 ## 由来
 にゃあ、今年(2022年)の夏は暑いにゃ。まだ梅雨だと思っていたらいきなりやつはやってきて猛暑になったにゃ。今日はどれくらい熱くなるにゃ？今は外に出て大丈夫にゃ？帰るごろには何度になっているにゃ？と思うこと絶えないにゃ。ブックマークでもよかったにゃが、気軽に調べる方法が欲しかったにゃ。
 
@@ -23,15 +20,16 @@ Windows環境で、終了してもプロセスが残り続けるという問題�
 
 ## 下ごしらえにゃ
 ```shell
-python3 -m pip beautifulsoup4
-python3 -m pip requests
+python -m pip beautifulsoup4
+python -m pip requests
 ```
 
-## 搬入にゃ
+## こしらえるにゃ
 git clone https://github.com/s-tkt/weather_watch.git
 
-## 処方箋
+## いただきますにゃ
 ```shell
+# cd weather_watch
 # python weather.py
 ```
 
