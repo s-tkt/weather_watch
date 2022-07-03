@@ -34,7 +34,7 @@ def get_data_display():
         i += 1
     
     for n in range(i):
-    	ttk.Label(frm, text='{:>2}時:{:>2}%:{:>2}'.format(time[n],rain[n],temp[n])).grid(column=0, row=n)
+    	ttk.Label(frm, text='{:>2}時:{:>2}:{:>2}'.format(time[n],rain[n],temp[n])).grid(column=0, row=n)
 
 get_data_display()
 
