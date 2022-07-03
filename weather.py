@@ -13,8 +13,8 @@ url_geo = 'https://msearch.gsi.go.jp/address-search/AddressSearch'
 
 # これを調整するにゃ
 address = ''
-latitude = 35.669
-longitude = 139.65
+latitude = '35.669'
+longitude = '139.65'
 
 root = Tk()
 
@@ -30,6 +30,7 @@ def terminate():
 
 root.protocol("WM_DELETE_WINDOW", terminate)
 root.title('天気予報')
+root.geometry('+100+100')
 frm = ttk.Frame(root, padding=10)
 frm.grid()
 # メニューバー
@@ -65,14 +66,16 @@ def get_geometry(address):
     return results
 
 class Geometry(tkinter.Toplevel):
-    def __init__(self, root, latitude, longitude):
+    def __init__(self, root, latlon_dict):
         super().__init__()
         self.root = root
-        self.latitude = latitude
-        self.longitude = longitude
+        self.latlon_dict = latlon_dict
+        self.latitude = latlon_dict['latitude']
+        self.longitude = latlon_dict['longitude']
         #self.transient(self.root)
         self.title('座標の設定')
-        self.withdraw()
+        self.protocol('WM_DELETE_WINDOW', self.close)
+        #self.withdraw()
         self.g_frm = ttk.Frame(self, padding=10)
         self.g_frm.grid(column=0, row=0,
             sticky=tkinter.E+tkinter.W+tkinter.N+tkinter.S)
@@ -97,7 +100,7 @@ class Geometry(tkinter.Toplevel):
             self.g_frm, selectmode=tkinter.SINGLE)
         self.g_select_address.grid(column=0, row=1, columnspan=3,
                 sticky=tkinter.E+tkinter.W+tkinter.N+tkinter.S)
-        self.g_select_address.bind('<Button-1>', self.select_list_handler)
+        self.g_select_address.bind('<<ListboxSelect>>', self.select_list_handler)
 
         # 緯度
         self.latitude_entry = tkinter.StringVar()
@@ -121,7 +124,7 @@ class Geometry(tkinter.Toplevel):
         ttk.Button(
             self.g_frm,
             text='決定',
-            command=self.decide,
+            command=self.close,
         ).grid(column=2, row=2, sticky=tkinter.E+tkinter.W)
 
         self.columnconfigure(0, weight=1)
@@ -132,6 +135,11 @@ class Geometry(tkinter.Toplevel):
         self.g_frm.rowconfigure(0, weight=0)
         self.g_frm.rowconfigure(1, weight=1)
         self.g_frm.rowconfigure(2, weight=0)
+
+    def close(self):
+        self.latlon_dict['latitude'] = self.latitude
+        self.latlon_dict['longitude'] = self.longitude
+        self.destroy()
 
     def select_address(self):
         self.address_list = get_geometry(self.address_entry.get())
@@ -152,29 +160,13 @@ class Geometry(tkinter.Toplevel):
         self.latitude_entry.set(self.latitude)
         self.longitude_entry.set(self.longitude)
 
-    def decide(self):
-        self.latitude = self.latitude_entry.get()
-        self.longitude = self.longitude_entry.get()
-
     def get():
         return self.latitude, self.longitude
 
-
-# 座標設定窓の作成
-tw_geometry = Geometry(root, latitude, longitude)
-
-def show_geometry():
-    tw_geometry.deiconify()
-    tw_geometry.grab_set()
-    tw_geometry.focus_set()
-    tw_geometry.transient(root)
-
-
-# メニューのエントリー
-menu_settings.add_command(label='座標の設定', command=show_geometry)
-menu_settings.add('command', label='表示')
+label_list = []
 
 def get_data_and_display():
+    global latitude, longitude
     response = requests.get( url % (latitude, longitude))
     soup = BeautifulSoup(response.text, 'html.parser')
     size, time, rain, temp = 0, [], [], []
@@ -183,11 +175,35 @@ def get_data_and_display():
         rain.append(row.find(class_='wTable__item r').text)
         temp.append(row.find(class_='wTable__item t').text)
         size += 1
-    
-    for n in range(i):
-    	ttk.Label(frm, text='{:>2}時:{:>2}:{:>2}'.format(time[n],rain[n],temp[n])).grid(column=0, row=n)
+
+    for n in range(size):
+        lbl = ttk.Label(frm, text='{:>2}時:{:>2}:{:>2}'.format(time[n],rain[n],temp[n]))
+        lbl.grid(column=0, row=n, sticky=tkinter.W)
+
+    ttk.Label(frm, text= url % (latitude, longitude)).grid(column=0, row=13)
 
 get_data_and_display()
+
+def show_geometry():
+    global latitude, longitude
+    latlon = {'latitude': latitude, 'longitude': longitude}
+    tw_geometry = Geometry(root, latlon)
+    #tw_geometry.deiconify()
+    tw_geometry.grab_set()
+    tw_geometry.focus_set()
+    tw_geometry.transient(root)
+    root.wait_window(tw_geometry)
+    root.grab_set()
+    root.focus_set()
+    latitude = latlon['latitude']
+    longitude = latlon['longitude']
+    get_data_and_display()
+
+
+# メニューのエントリー
+menu_settings.add_command(label='座標の設定',
+        command=show_geometry)
+menu_settings.add('command', label='表示')
 
 def scheduler():
 	t = threading.Timer(10*60, scheduler)
