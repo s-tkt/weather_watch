@@ -184,8 +184,8 @@ def get_data_and_display():
         temp.append(row.find(class_='wTable__item t').text)
         size += 1
     
-    for n in range(size):
-    	ttk.Label(frm, text='{:>2}時:{:>2}%:{:>2}'.format(time[n],rain[n],temp[n])).grid(column=0, row=n)
+    for n in range(i):
+    	ttk.Label(frm, text='{:>2}時:{:>2}:{:>2}'.format(time[n],rain[n],temp[n])).grid(column=0, row=n)
 
 get_data_and_display()
 
