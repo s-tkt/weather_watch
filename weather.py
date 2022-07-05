@@ -163,7 +163,6 @@ class Geometry(tkinter.Toplevel):
     def get():
         return self.latitude, self.longitude
 
-label_list = []
 
 def get_data_and_display():
     global latitude, longitude
@@ -177,10 +176,8 @@ def get_data_and_display():
         size += 1
 
     for n in range(size):
-        lbl = ttk.Label(frm, text='{:>2}時:{:>2}:{:>2}'.format(time[n],rain[n],temp[n]))
-        lbl.grid(column=0, row=n, sticky=tkinter.W)
+        ttk.Label(frm, text='{:>2}時:{:>2}:{:>2}'.format(time[n],rain[n],temp[n])).grid(column=0, row=n, sticky=tkinter.W)
 
-    ttk.Label(frm, text= url % (latitude, longitude)).grid(column=0, row=13)
 
 get_data_and_display()
 
