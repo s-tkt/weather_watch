@@ -13,8 +13,8 @@ url_geo = 'https://msearch.gsi.go.jp/address-search/AddressSearch'
 
 # これを調整するにゃ
 address = ''
-latitude = '35.669'
-longitude = '139.65'
+latitude = '35.6846269722222'
+longitude = '139.752032166667'
 
 root = Tk()
 
@@ -61,7 +61,8 @@ def get_geometry(address):
     results = [(
             pickup(muni.MUNI_DICT.get(x['properties']['addressCode'],'')),
             x['properties']['title'],
-            x['geometry']['coordinates'])
+            (x['geometry']['coordinates'][1],
+             x['geometry']['coordinates'][0]))
             for x in response.json()]
     return results
 
