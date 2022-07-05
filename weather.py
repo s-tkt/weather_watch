@@ -12,7 +12,7 @@ url_rev_geo = 'https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddre
 url_geo = 'https://msearch.gsi.go.jp/address-search/AddressSearch'
 
 # これを調整するにゃ
-address = ''
+address = '皇居'
 latitude = '35.6846269722222'
 longitude = '139.752032166667'
 
