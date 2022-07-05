@@ -13,22 +13,27 @@
 いちいちコマンドプロンプトたたくの面倒にゃ！～ということで、ウィジェットにしたにゃ。しかも定期的に情報を更新するにゃ。すごく便利になったにゃ！
 このときWindows版になったにゃ・・・といってもLinux版と何も変わらないにゃ。
 
+### 次の改編
+地名から緯度・経度を選択できるようにしてみたにゃ。規模が膨れたにゃ。
+
 ## 必要なものにゃ
 * python 3.10 (これしか確かめてないにゃ)
 * BeautifulSoup4
 * requests
 
 ## 下ごしらえにゃ
-```shell
+```shell-session
 python -m pip beautifulsoup4
 python -m pip requests
 ```
 
 ## こしらえるにゃ
+```shell-session
 git clone https://github.com/s-tkt/weather_watch.git
+```
 
 ## いただきますにゃ
-```shell
+```shell-session
 # cd weather_watch
 # python weather.py
 ```
@@ -37,6 +42,8 @@ git clone https://github.com/s-tkt/weather_watch.git
 
 ## 覚書
 * Windows にゃと中途半端なところに窓がでるにゃ。タイトルバーの左端アイコンから移動を選ぶにゃ。あわてず、キーボードの矢印キーで適当に動かすにゃ。あとはマウスで好きな場所に移動させるにゃよ。
+
+* Windowsにゃと `python` より `pythonw` が正解だということにゃが、にゃあは違いがわからないにゃ・・・
 
 ## ありがとうにゃん！
 * https://weathernew.jp
