@@ -176,11 +176,13 @@ def get_data_and_display():
         temp.append(row.find(class_='wTable__item t').text)
         size += 1
 
+    for l in label_list:
+        l.destroy()
+    labal_list = []
     for n in range(size):
         lbl = ttk.Label(frm, text='{:>2}時:{:>2}:{:>2}'.format(time[n],rain[n],temp[n]))
+        label_list.append(lbl)
         lbl.grid(column=0, row=n, sticky=tkinter.W)
-
-    ttk.Label(frm, text= url % (latitude, longitude)).grid(column=0, row=13)
 
 get_data_and_display()
 
