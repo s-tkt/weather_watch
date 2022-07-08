@@ -5,17 +5,19 @@ import threading
 import requests
 import tkinter
 from tkinter import Tk, ttk, messagebox
-# from bs4 import BeautifulSoup
-from geometry import Geometry
-from wmo import get_description
+from bs4 import BeautifulSoup
+from geometry2 import Geometry
+#from wmo import get_description
 
 # 情報ありがとうにゃん
-url = 'https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&timezone=Asia/Tokyo&hourly=temperature_2m,dewpoint_2m,precipitation,relativehumidity_2m,weathercode'
+site = 'https://weathernews.jp'
 
 # これを調整するにゃ
-address = ''
-latitude = '35.669'
-longitude = '139.65'
+address = '皇居（東京都）'
+latitude = '35.685316'
+longitude = '139.747163'
+uri = '/onebox/35.685316/139.747163/q=%E7%9A%87%E5%B1%85%EF%BC%88%E6%9D%B1%E4%BA%AC%E9%83%BD%EF%BC%89&v=33cf0c81d713854db71ea832bd6647dff38d61ce536ecedb323c6fb91c073de0'
+fqdn = 'https://weathernews.jp'
 
 maxrow = 24
 
@@ -36,11 +38,13 @@ root.title('天気予報')
 root.geometry('+100+100')
 frm = ttk.Frame(root, padding=10)
 frm.grid()
-ttk.Label(frm, text='時刻').grid(column=0, row=0)
-ttk.Label(frm, text='気温').grid(column=1, row=0)
-ttk.Label(frm, text='湿度').grid(column=2, row=0)
-ttk.Label(frm, text='降水量').grid(column=3, row=0)
-ttk.Label(frm, text='天気').grid(column=4, row=0)
+label_address = ttk.Label(frm,text=address)
+label_address.grid(column=0, row=0, columnspan=5)
+ttk.Label(frm, text='時刻').grid(column=0, row=1)
+ttk.Label(frm, text='天気').grid(column=1, row=1)
+ttk.Label(frm, text='気温').grid(column=2, row=1)
+ttk.Label(frm, text='降水').grid(column=3, row=1)
+ttk.Label(frm, text='風速').grid(column=4, row=1)
 
 # メニューバー
 menu_bar = tkinter.Menu(root)
@@ -49,52 +53,65 @@ root.config(menu=menu_bar)
 menu_settings = tkinter.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label='設定', menu=menu_settings)
 
+# 画面の初期作成
 label_list = []
+for i in range(maxrow):
+    row = []
+    for j in range(5):
+        lbl = ttk.Label(frm, text='')
+        lbl.grid(column=j, row=i+2, sticky=tkinter.W),
+        row.append(lbl)
+    label_list.append(row)
+
+# 画像を探すにゃ
+weather_icon = {}
+def get_weather_icon(uri):
+    name = re.search(r'^.+/(\d{3}.png)$', uri).group(1)
+    if name in weather_icon:
+        return weather_icon[name]
+    try:
+        icon = tkinter.PhotoImage(
+            file='weather/'+name,
+            #width=50,
+            #height=37,
+        ).subsample(5)
+        weather_icon[name] = icon
+    except:
+        return name
+    return icon
 
 def get_data_and_display():
-    response = requests.get( url % (latitude, longitude))
+    response = requests.get(fqdn + uri)
     status_code = response.status_code
     if status_code != 200:
-        messagebox.showerror('失敗しました', str(status_code))
+        messagebox.showerror('教えてくれなかったにゃ😥', str(status_code))
         return
-    result = response.json()['hourly']
-    temperature = result['temperature_2m']
-    precipitation = result['precipitation']
-    humidity = result['relativehumidity_2m']
-    weather = result['weathercode']
-    #dewpoint = result['dewpoint_2m'][:6]
-    time = result['time']
-    hour = [re.search(r'^.+T(\d\d):\d\d$', t).group(1) for t in time]
-    _now = ('0' + str(datetime.datetime.now().hour))[-2:]
-    start = hour.index(_now)
-
-    for lbl in label_list:
-        lbl.destroy()
-
-    label_list.clear()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    hour, rain, temp, wind, weather = [], [], [], [], []
+    for row in soup.find_all(class_='wTable__row')[1:maxrow+1]:
+        hour.append(row.find(class_='wTable__item time').text)
+        rain.append(row.find(class_='wTable__item r').text)
+        temp.append(row.find(class_='wTable__item t').text)
+        wind.append(row.find(class_='wTable__item w').text)
+        weather.append(row.find(class_='wTable__item weather')
+            .find('img').attrs['src'])
 
     for n in range(maxrow):
-        lbl = ttk.Label(frm, text='{:>2}時'.format(hour[start+n]))
-        label_list.append(lbl)
-        lbl.grid(column=0, row=n+1, sticky=tkinter.W)
-        lbl = ttk.Label(frm, text='{:>2}℃'.format(temperature[start+n]))
-        label_list.append(lbl)
-        lbl.grid(column=1, row=n+1, sticky=tkinter.W)
-        lbl = ttk.Label(frm, text='{:>3}%'.format(int(humidity[start+n])))
-        label_list.append(lbl)
-        lbl.grid(column=2, row=n+1, sticky=tkinter.W)
-        lbl = ttk.Label(frm, text='{:>3}mm'.format(precipitation[start+n]))
-        label_list.append(lbl)
-        lbl.grid(column=3, row=n+1, sticky=tkinter.W)
-        lbl = ttk.Label(frm, text='{}'.format(get_description(weather[start+n])))
-        label_list.append(lbl)
-        lbl.grid(column=4, row=n+1, sticky=tkinter.W)
+        label_list[n][0].config(text='{:>2}時'.format(hour[n]))
+        label_list[n][2].config(text='{:>2}'.format(temp[n]))
+        label_list[n][3].config(text='{:>3}'.format(rain[n]))
+        label_list[n][4].config(text='{:>3}'.format(wind[n]))
+        icon = get_weather_icon(weather[n])
+        if type(icon) == str:
+            label_list[n][1].config(text=icon)
+        else:
+            label_list[n][1].config(image=icon)
 
 
 # 座標決定窓の表示にゃ！
 def show_geometry():
-    global latitude, longitude
-    latlon = {'latitude': latitude, 'longitude': longitude}
+    global latitude, longitude, address, uri
+    latlon = {'latitude': latitude, 'longitude': longitude, 'address': address, 'uri': uri}
     tw_geometry = Geometry(root, latlon)
     #tw_geometry.deiconify()
     tw_geometry.grab_set()
@@ -105,6 +122,9 @@ def show_geometry():
     root.focus_set()
     latitude = latlon['latitude']
     longitude = latlon['longitude']
+    address = latlon['address']
+    uri = latlon['uri']
+    label_address.config(text=address)
     get_data_and_display()
 
 
