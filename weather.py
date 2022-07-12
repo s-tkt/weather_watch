@@ -1,7 +1,9 @@
 import os
+import sys
 import re
 import datetime
 import threading
+import json
 import requests
 import tkinter
 from tkinter import Tk, ttk, messagebox
@@ -12,14 +14,50 @@ from geometry2 import Geometry
 # 情報ありがとうにゃん
 site = 'https://weathernews.jp'
 
-# これを調整するにゃ
-address = '皇居（東京都）'
-latitude = '35.685316'
-longitude = '139.747163'
-uri = '/onebox/35.685316/139.747163/q=%E7%9A%87%E5%B1%85%EF%BC%88%E6%9D%B1%E4%BA%AC%E9%83%BD%EF%BC%89&v=33cf0c81d713854db71ea832bd6647dff38d61ce536ecedb323c6fb91c073de0'
-fqdn = 'https://weathernews.jp'
+conf_path = 'config.json'
+settings = {
+    'default' : {
+        'address' : '皇居（東京都）',
+        'latitude' : '35.685316',
+        'longitude' : '139.747163',
+        'uri' : '/onebox/35.685316/139.747163/q=%E7%9A%87%E5%B1%85%EF%BC%88%E6%9D%B1%E4%BA%AC%E9%83%BD%EF%BC%89&v=33cf0c81d713854db71ea832bd6647dff38d61ce536ecedb323c6fb91c073de0',
+        'root_x': 50,
+        'root_y': 50,
+        'maxrow' : 12,
+    },
+    'bookmark' : []
+}
+default = {}
+bookmark = []
 
-maxrow = 24
+# 設定値の読み込みにゃ
+def load_config():
+    global default, bookmark
+    try:
+        with open(conf_path, 'r', encoding='utf-8') as cnf:
+            settings = json.load(cnf)
+            default = settings['default']
+            bookmark = settings['bookmark']
+    except Exception as e:
+        messagebox.showerror('エラー', '設定の読み込みに失敗したにゃぁぁぁ', detail=str(e))
+
+# ついでに書き込み関数にゃ
+def save_config():
+    settings = { 'default' : default, 'bookmark' : bookmark }
+    try:
+        with open(conf_path, 'w', encoding='utf-8') as cnf:
+            json.dump(settings, cnf, indent=4)
+    except Exception as e:
+        messagebox.showerror('エラー', '設定の保存に失敗したにゃぁぁぁ', detail=str(e))
+
+load_config()
+address = default['address']
+latitude = default['latitude']
+longitude = default['longitude']
+uri = default['uri']
+root_x = default['root_x']
+root_y = default['root_y']
+maxrow = default['maxrow']
 
 root = Tk()
 
@@ -35,7 +73,7 @@ def terminate():
 
 root.protocol("WM_DELETE_WINDOW", terminate)
 root.title('天気予報')
-root.geometry('+100+100')
+root.geometry('+%s+%s' % (root_x, root_y))
 frm = ttk.Frame(root, padding=10)
 frm.grid()
 label_address = ttk.Label(frm,text=address)
@@ -46,12 +84,6 @@ ttk.Label(frm, text='気温').grid(column=2, row=1)
 ttk.Label(frm, text='降水').grid(column=3, row=1)
 ttk.Label(frm, text='風速').grid(column=4, row=1)
 
-# メニューバー
-menu_bar = tkinter.Menu(root)
-root.config(menu=menu_bar)
-# メニュー
-menu_settings = tkinter.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label='設定', menu=menu_settings)
 
 # 画面の初期作成
 label_list = []
@@ -71,17 +103,17 @@ def get_weather_icon(uri):
         return weather_icon[name]
     try:
         icon = tkinter.PhotoImage(
-            file='weather/'+name,
+            file='wicon/'+name,
             #width=50,
             #height=37,
-        ).subsample(5)
+        ).subsample(6)
         weather_icon[name] = icon
     except:
         return name
     return icon
 
 def get_data_and_display():
-    response = requests.get(fqdn + uri)
+    response = requests.get(site + uri)
     status_code = response.status_code
     if status_code != 200:
         messagebox.showerror('教えてくれなかったにゃ😥', str(status_code))
@@ -90,16 +122,18 @@ def get_data_and_display():
     hour, rain, temp, wind, weather = [], [], [], [], []
     for row in soup.find_all(class_='wTable__row')[1:maxrow+1]:
         hour.append(row.find(class_='wTable__item time').text)
-        rain.append(row.find(class_='wTable__item r').text)
+        rain_mm = row.find(class_='wTable__item r').text
+        rain.append(re.search(r'^(\d+).*$', rain_mm).group(1))
         temp.append(row.find(class_='wTable__item t').text)
         wind.append(row.find(class_='wTable__item w').text)
         weather.append(row.find(class_='wTable__item weather')
             .find('img').attrs['src'])
 
-    for n in range(maxrow):
+    n_row = maxrow if maxrow <= len(hour) else len(hour)
+    for n in range(n_row):
         label_list[n][0].config(text='{:>2}時'.format(hour[n]))
         label_list[n][2].config(text='{:>2}'.format(temp[n]))
-        label_list[n][3].config(text='{:>3}'.format(rain[n]))
+        label_list[n][3].config(text='{:>3}mm'.format(rain[n]))
         label_list[n][4].config(text='{:>3}'.format(wind[n]))
         icon = get_weather_icon(weather[n])
         if type(icon) == str:
@@ -111,7 +145,7 @@ def get_data_and_display():
 # 座標決定窓の表示にゃ！
 def show_geometry():
     global latitude, longitude, address, uri
-    latlon = {'latitude': latitude, 'longitude': longitude, 'address': address, 'uri': uri}
+    latlon = {'latitude': latitude, 'longitude': longitude, 'address': address, 'uri': uri, 'cancel': False}
     tw_geometry = Geometry(root, latlon)
     #tw_geometry.deiconify()
     tw_geometry.grab_set()
@@ -120,18 +154,37 @@ def show_geometry():
     root.wait_window(tw_geometry)
     root.grab_set()
     root.focus_set()
-    latitude = latlon['latitude']
-    longitude = latlon['longitude']
-    address = latlon['address']
-    uri = latlon['uri']
-    label_address.config(text=address)
-    get_data_and_display()
+    if latlon['cancel'] is False:
+        latitude = latlon['latitude']
+        longitude = latlon['longitude']
+        address = latlon['address']
+        uri = latlon['uri']
+        label_address.config(text=address)
+        get_data_and_display()
 
 
+def set_position_as_default():
+    default['root_x'] = root.winfo_x()
+    default['root_y'] = root.winfo_y()
+    save_config()
+
+def set_address_as_default():
+    default['address'] = address
+    default['latitude'] = latitude
+    default['longitude'] = longitude
+    default['uri'] = uri
+    save_config()
+
+# トップのメニューバー
+menu_bar = tkinter.Menu(root)
+root.config(menu=menu_bar)
+# メニュー
+menu_bar.add_command(label='場所設定', command=show_geometry)
+menu_settings = tkinter.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label='設定', menu=menu_settings)
 # 設定メニューのエントリー
-menu_settings.add_command(label='座標の設定',
-        command=show_geometry)
-menu_settings.add('command', label='表示')
+menu_settings.add('command', label='場所を記憶', command=set_address_as_default)
+menu_settings.add('command', label='窓位置を記憶', command=set_position_as_default)
 
 def scheduler():
     t = threading.Timer(10*60, scheduler)
