@@ -5,10 +5,10 @@ import datetime
 import threading
 import json
 import requests
-import tkinter
+import tkinter as tk
 from tkinter import Tk, ttk, messagebox
 from bs4 import BeautifulSoup
-from geometry2 import Geometry
+from geometry import Geometry
 #from wmo import get_description
 
 # 情報ありがとうにゃん
@@ -27,8 +27,9 @@ settings = {
     },
     'bookmark' : []
 }
-default = {}
+default = settings['default']
 bookmark = []
+weather_icon = {}
 
 # 設定値の読み込みにゃ
 def load_config():
@@ -38,6 +39,8 @@ def load_config():
             settings = json.load(cnf)
             default = settings['default']
             bookmark = settings['bookmark']
+    except FileNotFoundError as e:
+        pass
     except Exception as e:
         messagebox.showerror('エラー', '設定の読み込みに失敗したにゃぁぁぁ', detail=str(e))
 
@@ -50,59 +53,26 @@ def save_config():
     except Exception as e:
         messagebox.showerror('エラー', '設定の保存に失敗したにゃぁぁぁ', detail=str(e))
 
-load_config()
-address = default['address']
-latitude = default['latitude']
-longitude = default['longitude']
-uri = default['uri']
-root_x = default['root_x']
-root_y = default['root_y']
-maxrow = default['maxrow']
-
-root = Tk()
-
 # 終了処理
 # これをしないとプロセスが残ってしまうにゃぁぁぁ
 def terminate():
-    global root
+    global root, timer, thread
+    timer.cancel()
+    thread.join()
     root.quit()
     root.destroy()
-    # sys.exit() だとプロセスが残るにゃ？
-    os._exit(0)
+    sys.exit(0)
 
 
-root.protocol("WM_DELETE_WINDOW", terminate)
-root.title('天気予報')
-root.geometry('+%s+%s' % (root_x, root_y))
-frm = ttk.Frame(root, padding=10)
-frm.grid()
-label_address = ttk.Label(frm,text=address)
-label_address.grid(column=0, row=0, columnspan=5)
-ttk.Label(frm, text='時刻').grid(column=0, row=1)
-ttk.Label(frm, text='天気').grid(column=1, row=1)
-ttk.Label(frm, text='気温').grid(column=2, row=1)
-ttk.Label(frm, text='降水').grid(column=3, row=1)
-ttk.Label(frm, text='風速').grid(column=4, row=1)
-
-
-# 画面の初期作成
-label_list = []
-for i in range(maxrow):
-    row = []
-    for j in range(5):
-        lbl = ttk.Label(frm, text='')
-        lbl.grid(column=j, row=i+2, sticky=tkinter.W),
-        row.append(lbl)
-    label_list.append(row)
 
 # 画像を探すにゃ
-weather_icon = {}
 def get_weather_icon(uri):
+    global weather_icon
     name = re.search(r'^.+/(\d{3}.png)$', uri).group(1)
     if name in weather_icon:
         return weather_icon[name]
     try:
-        icon = tkinter.PhotoImage(
+        icon = tk.PhotoImage(
             file='wicon/'+name,
             #width=50,
             #height=37,
@@ -113,33 +83,38 @@ def get_weather_icon(uri):
     return icon
 
 def get_data_and_display():
-    response = requests.get(site + uri)
-    status_code = response.status_code
-    if status_code != 200:
-        messagebox.showerror('教えてくれなかったにゃ😥', str(status_code))
-        return
-    soup = BeautifulSoup(response.text, 'html.parser')
-    hour, rain, temp, wind, weather = [], [], [], [], []
-    for row in soup.find_all(class_='wTable__row')[1:maxrow+1]:
-        hour.append(row.find(class_='wTable__item time').text)
-        rain_mm = row.find(class_='wTable__item r').text
-        rain.append(re.search(r'^(\d+).*$', rain_mm).group(1))
-        temp.append(row.find(class_='wTable__item t').text)
-        wind.append(row.find(class_='wTable__item w').text)
-        weather.append(row.find(class_='wTable__item weather')
-            .find('img').attrs['src'])
+    try:
+        response = requests.get(site + uri)
+        status_code = response.status_code
+        if status_code != 200:
+            messagebox.showerror('教えてくれなかったにゃ😥', str(status_code))
+            return
+        soup = BeautifulSoup(response.text, 'html.parser')
+        hour, rain, temp, wind, weather = [], [], [], [], []
+        time_weather = soup.find(class_='wTable time').find(class_='wTable__body')
+        for row in time_weather.find_all(class_='wTable__row'):
+            hour.append(row.find(class_='wTable__item time').text)
+            rain_mm = row.find(class_='wTable__item r').text
+            rain.append(re.search(r'^(\d+)', rain_mm).group(1))
+            temp.append(row.find(class_='wTable__item t').text)
+            wind.append(row.find(class_='wTable__item w').text)
+            weather.append(row.find(class_='wTable__item weather')
+                .find('img').attrs['src'])
 
-    n_row = maxrow if maxrow <= len(hour) else len(hour)
-    for n in range(n_row):
-        label_list[n][0].config(text='{:>2}時'.format(hour[n]))
-        label_list[n][2].config(text='{:>2}'.format(temp[n]))
-        label_list[n][3].config(text='{:>3}mm'.format(rain[n]))
-        label_list[n][4].config(text='{:>3}'.format(wind[n]))
-        icon = get_weather_icon(weather[n])
-        if type(icon) == str:
-            label_list[n][1].config(text=icon)
-        else:
-            label_list[n][1].config(image=icon)
+        n_row = maxrow if maxrow <= len(hour) else len(hour)
+        for n in range(n_row):
+            label_list[n][0].config(text='{:>2}時'.format(hour[n]))
+            label_list[n][2].config(text='{:>2}'.format(temp[n]))
+            label_list[n][3].config(text='{:>3}mm'.format(rain[n]))
+            label_list[n][4].config(text='{:>3}'.format(wind[n]))
+            icon = get_weather_icon(weather[n])
+            if type(icon) == str:
+                label_list[n][1].config(text=icon)
+            else:
+                label_list[n][1].config(image=icon)
+    except Exception as e:
+        messagebox.showerror('何かエラーが起きたにゃ', str(e))
+        terminate()
 
 
 # 座標決定窓の表示にゃ！
@@ -175,24 +150,64 @@ def set_address_as_default():
     default['uri'] = uri
     save_config()
 
-# トップのメニューバー
-menu_bar = tkinter.Menu(root)
-root.config(menu=menu_bar)
-# メニュー
-menu_bar.add_command(label='場所設定', command=show_geometry)
-menu_settings = tkinter.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label='設定', menu=menu_settings)
-# 設定メニューのエントリー
-menu_settings.add('command', label='場所を記憶', command=set_address_as_default)
-menu_settings.add('command', label='窓位置を記憶', command=set_position_as_default)
-
 def scheduler():
-    t = threading.Timer(10*60, scheduler)
-    t.start()
+    global timer
+    timer = threading.Timer(10*60, scheduler)
+    timer.start()
     get_data_and_display()
 
 
-thread = threading.Thread(target=scheduler)
-thread.start()
 
-root.mainloop()
+if __name__ == '__main__':
+    load_config()
+    address = default['address']
+    latitude = default['latitude']
+    longitude = default['longitude']
+    uri = default['uri']
+    root_x = default['root_x']
+    root_y = default['root_y']
+    maxrow = default['maxrow']
+    # root窓の設定にゃ
+    root = Tk()
+    root.protocol("WM_DELETE_WINDOW", terminate)
+    root.title('天気予報')
+    root.iconbitmap(default='icon.ico')
+    #root.iconphoto(False, tk.PhotoImage(file='icon.png'))
+    root.geometry('+%s+%s' % (root_x, root_y))
+    # 中身をごりごり作るにゃ
+    frm = ttk.Frame(root, padding=10)
+    frm.grid()
+    label_address = ttk.Label(frm,text=address)
+    label_address.grid(column=0, row=0, columnspan=5)
+    ttk.Label(frm, text='時刻').grid(column=0, row=1)
+    ttk.Label(frm, text='天気').grid(column=1, row=1)
+    ttk.Label(frm, text='気温').grid(column=2, row=1)
+    ttk.Label(frm, text='降水').grid(column=3, row=1)
+    ttk.Label(frm, text='風速').grid(column=4, row=1)
+
+    # 画面の初期作成
+    label_list = []
+    for i in range(maxrow):
+        row = []
+        for j in range(5):
+            lbl = ttk.Label(frm, text='')
+            lbl.grid(column=j, row=i+2, sticky=tk.W),
+            row.append(lbl)
+        label_list.append(row)
+
+    # トップのメニューバー
+    menu_bar = tk.Menu(root)
+    root.config(menu=menu_bar)
+    # メニュー
+    menu_bar.add_command(label='場所設定', command=show_geometry)
+    menu_settings = tk.Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label='設定', menu=menu_settings)
+    # 設定メニューのエントリー
+    menu_settings.add('command', label='場所を記憶', command=set_address_as_default)
+    menu_settings.add('command', label='窓位置を記憶', command=set_position_as_default)
+
+    get_data_and_display()
+    thread = threading.Thread(target=scheduler)
+    thread.start()
+
+    root.mainloop()
