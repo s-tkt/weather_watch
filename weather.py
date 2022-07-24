@@ -91,19 +91,24 @@ def get_data_and_display():
             return
         soup = BeautifulSoup(response.text, 'html.parser')
         hour, rain, temp, wind, weather = [], [], [], [], []
-        time_weather = soup.find(class_='wTable time').find(class_='wTable__body')
-        for row in time_weather.find_all(class_='wTable__row'):
-            hour.append(row.find(class_='wTable__item time').text)
-            rain_mm = row.find(class_='wTable__item r').text
-            rain.append(re.search(r'^(\d+)', rain_mm).group(1))
-            temp.append(row.find(class_='wTable__item t').text)
-            wind.append(row.find(class_='wTable__item w').text)
-            weather.append(row.find(class_='wTable__item weather')
-                .find('img').attrs['src'])
+        time_table = soup.find(class_='wTable time').find(class_='wTable__body')
+        for day_elem in time_table.find_all(class_='wTable__group'):
+            _day = day_elem.select('.wTable__day > .wTable__item')[0].text
+            day = re.search(r'(\d+)', _day).group(1)
+            weather_content = day_elem.find(class_='wTable__content')
+            for row in weather_content.find_all(class_='wTable__row'):
+                hour.append('{:>2}日/{:>2}'.format(
+                    day, row.find(class_='wTable__item time').text))
+                rain_mm = row.find(class_='wTable__item r').text
+                rain.append(re.search(r'^(\d+)', rain_mm).group(1))
+                temp.append(row.find(class_='wTable__item t').text)
+                wind.append(row.find(class_='wTable__item w').text)
+                weather.append(row.find(class_='wTable__item weather')
+                    .find('img').attrs['src'])
 
         n_row = maxrow if maxrow <= len(hour) else len(hour)
         for n in range(n_row):
-            label_list[n][0].config(text='{:>2}時'.format(hour[n]))
+            label_list[n][0].config(text='{:>6}時'.format(hour[n]))
             label_list[n][2].config(text='{:>2}'.format(temp[n]))
             label_list[n][3].config(text='{:>3}mm'.format(rain[n]))
             label_list[n][4].config(text='{:>3}'.format(wind[n]))
